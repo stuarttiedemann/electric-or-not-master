@@ -1,0 +1,27 @@
+
+<% include head %>
+
+<body>
+
+<header>
+<% include header %>
+</header>
+<main>
+  <h1><span class="green">Electric</span> or <span class="red">NOT?</span></h1>
+  <h2>Add an image link to Vote On.</h2>
+
+   
+
+  <div class="button-holder">
+        <form class="vote-button" action="./newphoto" method="post">
+            <input type="text" name="newphoto" placeholder="Enter URl" />
+            <input type="submit" class="btn btn-info" value="Add Photo!" />
+        </form>
+        
+    </div> 
+</main>
+<footer>
+<% include footer %>  
+</footer>
+</body>
+</html>
