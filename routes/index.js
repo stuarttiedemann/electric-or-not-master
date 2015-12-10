@@ -62,18 +62,34 @@ router.get('/reset', function(req, res, next){
 	db.collection('photos').save({name:"Yellow",image:"/images/yellow.jpg",totalVotes:0});
 	res.redirect('/');
 });
-router.post('*', function(req,res,next){
-	if(req.url == '/electric'){
-		var page = 'electric';
-	}else if(req.url == '/poser'){
-		var page= 'poser';
-	}else{
-		res.redirect('/');
-	}
+router.post('/electric', function(req,res,next){
 		db.collection('photos').find({image: req.body.photo}).toArray(function(error, result){
 			var updateVotes = function(db, votes, callback) {
-				if(page=='electric'){var newVotes = votes+1;}
-				else{var newVotes = votes-1;}
+				{var newVotes = votes+1;}
+		
+			   db.collection('photos').updateOne(
+			      { "image" : req.body.photo },
+			      {
+			        $set: { "totalVotes": newVotes },
+			        $currentDate: { "lastModified": true }
+			      }, function(err, results) {
+			      callback();
+			   });
+			};
+				updateVotes(db,result[0].totalVotes, function() {});
+		});
+		db.collection('users').insertOne( {
+	    	ip: req.ip,
+	    	vote: 'electric',
+	    	image: req.body.photo
+		});
+		res.redirect('/');
+});
+
+router.post('/poser', function(req,res,next){
+		db.collection('photos').find({image: req.body.photo}).toArray(function(error, result){
+			var updateVotes = function(db, votes, callback) {
+				{var newVotes = votes-1;}
 				
 			   db.collection('photos').updateOne(
 			      { "image" : req.body.photo },
@@ -88,7 +104,7 @@ router.post('*', function(req,res,next){
 		});
 		db.collection('users').insertOne( {
 	    	ip: req.ip,
-	    	vote: page,
+	    	vote: 'poser',
 	    	image: req.body.photo
 		});
 		res.redirect('/');

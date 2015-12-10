@@ -2,105 +2,80 @@ var express = require('express');
 var router = express.Router();
 var MongoClient = require('mongodb').MongoClient;
 var mongoUrl = 'mongodb://localhost:27017/electric';
+var Photo = require('../models/photos');
+var Users = require('../models/users');
+
 var db;
 var mongoose = require('mongoose');
 mongoose.connect(mongoUrl);
-var Photo = require('../models/photos');
 
 
+/* GET photos page. */
+router.get('/photos/get', function(req, res, next) {
+	Photo.find(function(err,photosResult){
+		if(err){
+			console.log(err);
+		}else{
+			res.json(photosResult);
+		}
+	});
+});
 
-// Open Database Connection
-MongoClient.connect(mongoUrl, function(error, database){db=database;});
+router.post('/photos/post',function(req,res,next){
+	var photo = new Photo();
+	photo.image = req.body.image;
+	photo.totalVotes = 0;
+	console.log(photo.image);
+	photo.save(function(err){
+		if(err){
+			console.log(err);
+		}else{
+			res.json({message: 'Photo added'});
+		}
+	})
+});
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-		//1. Get all pictures from the MongoDB
-		var currIP = req.ip;
-		db.collection('users').find({ip: currIP}).toArray(function(error, userResult){
-			//2. Get the current user from MongoDB vai req.ip
-			var photosVoted = [];
-			for(i=0;i<userResult.length;i++){
-				photosVoted.push(userResult[i]);
-			}
-			db.collection('photos').find({photo: {$nin: photosVoted}}).toArray(function(error, result){
-				var rand = Math.floor(Math.random() * result.length);
-				if(result.length == 0){
-					res.render('standings', {photo: result[rand]});
+router.put('/photos/update', function(req, res, next){
+	Photo.findById(req.params.photo_id, function(err,photoResult){
+		if(err){
+			console.log(err);
+		}else{
+			photoResult.image = req.body.photo; // Change the property of the object we got from Mongo
+			photoResult.save(function(err){
+				if(err){
+					console.log(err);
 				}else{
-					res.render('index', {photo: result[rand]});
+					res.json({message:'Photo was updated'});
 				}
-
 			});
-		});	
-});
-router.get('/standings', function(req, res, next) {
-	//1. get ALL the photos
-	//2. Sort them by highest likes
-	//3. res.render the standings view and pass it the sorted photo array 
-		db.collection('photos').find().toArray(function(error, result){
-			//Pass all votes
-			result.sort(function(p1, p2){
-				return (p2.totalVotes - p1.totalVotes);
-			});
-			res.render('standings', {photosStandings: result});
-		});	
+		}
+	});
+	
 });
 
-// Route for New Photo .get
-router.get('/add', function(req, res, next){
-	res.render('add');
-});
-// Route for writing New Photo .post
-router.post('/newphoto', function(req, res, next){
-	console.log(req.body);
-		db.collection('photos').insert( {
-	    	"name": "New Image",
-	    	"image": req.body.newphoto,
-	    	"totalVotes": 0
-		});
-	res.redirect('/');
+router.delete('/photos/delete', function(req, res, next){
+	Photo.remove({
+		_id: req.params.photo_id
+	},function(err,photo){
+		if(err){
+			console.log(err);
+		}else{
+			res.json({message:"Successfully Deleted"});
+		}
+	
+	});
 })
-// Route to reset the photos database to its original contents
-router.get('/reset', function(req, res, next){
-	db.collection('photos').remove({});
-	db.collection('photos').save({name:"Peel",image:"/images/peel.jpg",totalVotes:0});
-	db.collection('photos').save({name:"Tesla",image:"/images/tesla.jpg",totalVotes:0});
-	db.collection('photos').save({name:"TeslaX",image:"/images/teslax.jpg",totalVotes:0});
-	db.collection('photos').save({name:"Yellow",image:"/images/yellow.jpg",totalVotes:0});
-	res.redirect('/');
-});
-router.post('*', function(req,res,next){
-	if(req.url == '/electric'){
-		var page = 'electric';
-	}else if(req.url == '/poser'){
-		var page= 'poser';
-	}else{
-		res.redirect('/');
-	}
-		db.collection('photos').find({image: req.body.photo}).toArray(function(error, result){
-			var updateVotes = function(db, votes, callback) {
-				if(page=='electric'){var newVotes = votes+1;}
-				else{var newVotes = votes-1;}
-				
-			   db.collection('photos').updateOne(
-			      { "image" : req.body.photo },
-			      {
-			        $set: { "totalVotes": newVotes },
-			        $currentDate: { "lastModified": true }
-			      }, function(err, results) {
-			      callback();
-			   });
-			};
-				updateVotes(db,result[0].totalVotes, function() {});
-		});
-		db.collection('users').insertOne( {
-	    	ip: req.ip,
-	    	vote: page,
-	    	image: req.body.photo
-		});
-		res.redirect('/');
-});
 
+
+router.get('/users/get', function(req, res, next) {
+	Users.find(function(err,usersResult){
+		if(err){
+			console.log(err);
+		}else{
+			res.json(usersResult);
+		}
+	});
+});
 module.exports = router;
 
 
